@@ -1,6 +1,7 @@
 <template>
   <v-row justify="center" align="center">
     <v-col cols="12">
+      <v-row justify="space-around" class="mt-8 mb-5">
       <v-btn x-large @click="$refs.input.click()" class="mt-1 mx-10">
         <v-list-item-content>
           <input
@@ -18,6 +19,7 @@
       <v-btn x-large @click="textDialog=true" class="mt-1 mx-10">
         ノーマルテキストから解析
       </v-btn>
+      </v-row>
       <v-dialog
         transition="dialog-bottom-transition"
         max-width="600"

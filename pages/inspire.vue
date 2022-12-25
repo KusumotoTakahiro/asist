@@ -1,7 +1,7 @@
 <template>
   <v-row>
     <v-col class="text-center">
-      <v-alert border="left" colored-border color="deep-purple accent-4" elevation="2">
+      <v-alert border="left" colored-border color="blue lighten-1" elevation="2">
         <div class="text-h5">一時保存されているデータ一覧</div>
         <div class="text-caption">※リロード，ブラウザごと消す等の処理で一時データはなくなります</div>
       </v-alert>
@@ -29,7 +29,7 @@
               <td class="text-left">{{ item.text.title }}</td>
               <td class="text-left">{{ item.text.time }}</td>
               <td class="text-left">
-                <v-btn text color='indigo'>
+                <v-btn text color='blue lighten-1'>
                   <v-icon>mdi-arrow-right-bold</v-icon>
                 </v-btn>
               </td>
