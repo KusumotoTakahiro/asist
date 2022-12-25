@@ -57,6 +57,9 @@
               <th class="text-left">
                 主語
               </th>
+              <th class="text-left">
+                述語
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -69,6 +72,11 @@
               <td>
                 <template v-for="syugo in item.syugo">
                   <div :key="syugo">{{ syugo }},</div>
+                </template>
+              </td>
+              <td>
+                <template v-for="zyutugo in item.zyutugo">
+                  <div :key="zyutugo">{{ zyutugo }},</div>
                 </template>
               </td>
             </tr>
@@ -164,13 +172,24 @@ export default {
       let data = {}
       let id = 0
       let sentence = ''
-      let syugo = []
-      let word = ''
+      let syugo = [] // 主語の集合
+      let zyutugo = [] // 述語の集合
+      let word = '' // 主語
+      let word2 = '' // 述語
       let sf = ''
+      let pos = ''
+      let verb = false // 直前が動詞か否かのフラグ
       for (let i = 0; i < tokens.length; i++) {
+        console.log(tokens[i])
         sf = tokens[i].surface_form
+        pos = tokens[i].pos
         sentence += sf
         word += sf
+        /* 主語を判定しつつ抽出する処理
+          (は，が以外の助詞) + (は，が以外の文字) + (は，が)
+          を述語判定の形として，（は，が以外の助詞）を無視して
+          （は，が）が来たタイミングで主語として抽出していく
+        */
         if (sf === ('が')) {
           syugo.push(word)
           word = ''
@@ -180,17 +199,42 @@ export default {
         } else if (func.isZyoshi(sf)) {
           word = ''
         }
+        /* 述語を判定しつつ抽出する処理
+          （は，が以外の文字）＋（動詞）＋（動詞以外）
+          を述語判定の形として，動詞ー＞動詞以外がきたタイミングで
+          述語として抽出していく
+        */
+        if (pos === '動詞') {
+          word2 += sf
+          verb = true
+        } else if (verb && (pos !== '動詞')) {
+          zyutugo.push(word2)
+          word2 = ''
+          verb = false
+        } else if (sf === ('が')) {
+          word2 = ''
+          verb = false
+        } else if (sf === ('は')) {
+          word2 = ''
+          verb = false
+        } else {
+          word2 += sf
+        }
         if (tokens[i].surface_form.match(/\*/)) {
           console.log(sf)
           data.id = id
           data.sentence = sentence.slice(0, sentence.length - 1)
           data.syugo = syugo
+          data.zyutugo = zyutugo
           this.sentences.push(data)
           data = {}
           id += 1
           sentence = ''
           syugo = []
+          zyutugo = []
           word = ''
+          word2 = ''
+          verb = false
         }
       }
       const now = new Date()
