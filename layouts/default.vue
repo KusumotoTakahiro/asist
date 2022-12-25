@@ -88,7 +88,7 @@ export default {
       miniVariant: true,
       right: true,
       rightDrawer: false,
-      title: 'Asist(Analysis of Text)'
+      title: 'Asist（Analysis of Text）'
     }
   }
 }

@@ -1,24 +1,19 @@
-const kuromoji = require('kuromoji')
+const zyoshi = [
+  'では',
+  'より',
+  'へ',
+  'から',
+  'の',
+  'には',
+  'によると',
+  'するが'
+]
 
-const DICT_PATH = '/dict'
-// Tokenizerの作成
-function getTokenizer () {
-  return new Promise((resolve) => {
-    kuromoji.builder({ dicPath: DICT_PATH }).build((tokenizer) => {
-      resolve(tokenizer)
-    })
-  })
-}
-
-export const perseByKuromoji = async (text) => {
-  const tokens = await getTokenizer()
-    .then((tokenizer) => {
-      console.log(text)
-      const tokens = tokenizer.tokenize(text)
-      for (let i = 0; i < tokens.length; i++) {
-        console.log(tokens[i])
-      }
-      return tokens
-    })
-  return tokens
+export const isZyoshi = (word) => {
+  for (let i = 0; i < zyoshi.length; i++) {
+    if (zyoshi[i] === word) {
+      return true
+    }
+  }
+  return false
 }

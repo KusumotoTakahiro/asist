@@ -11,7 +11,7 @@
             @change="onFileChange"
           />
           <v-list-item-title>
-            テキストファイルから読込
+            テキストファイルから解析
           </v-list-item-title>
         </v-list-item-content>
       </v-btn>
@@ -24,14 +24,22 @@
         v-model="textDialog"
       >
         <v-card elevation="4">
-            <v-card-title class="justify-center">テキストを入力してください</v-card-title>
-            <v-textarea
-              v-model="text"
-              outlined
-              name="input-7-4"
-              :height="Dheight"
-            ></v-textarea>
-          <v-btn block @click="analysis(text)">解析</v-btn>
+          <v-card-title class="justify-center">テキストを入力してください</v-card-title>
+          <v-textarea
+            v-model="text"
+            outlined
+            class="my-0"
+            name="input-7-4"
+            :height="Dheight"
+          ></v-textarea>
+          <v-row>
+            <v-col>
+              <v-btn class="mx-0" block @click="analysis(text)">解析</v-btn>
+            </v-col>
+            <v-col>
+              <v-btn class="mx-0" block @click="text=''">全文削除</v-btn>
+            </v-col>
+          </v-row>
         </v-card>
       </v-dialog>
     </v-col>
@@ -46,6 +54,9 @@
               <th class="text-left">
                 文章
               </th>
+              <th class="text-left">
+                主語
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -55,6 +66,11 @@
             >
               <td>{{ item.id }}</td>
               <td>{{ item.sentence }}</td>
+              <td>
+                <template v-for="syugo in item.syugo">
+                  <div :key="syugo">{{ syugo }},</div>
+                </template>
+              </td>
             </tr>
           </tbody>
         </template>
@@ -66,22 +82,27 @@
 <script>
 import Encoding from 'encoding-japanese'
 import kuromoji from 'kuromoji'
-// import * as func from '~/plugins/myPlugins'
+import * as func from '~/plugins/myPlugins'
 
 export default {
   name: 'IndexPage',
   data () {
     return {
       file: null,
+      fileTitle: '',
       encoding: '',
       text: '',
-      textArray: [],
       sentences: [],
       textDialog: false
     }
   },
   mounted () {
     console.log('mounted')
+    if (!this.$store.state.isLogin) {
+      this.$store.commit('login')
+    } else {
+      this.sentences = this.$store.state.nowData.nowData
+    }
   },
   computed: {
     Dheight () {
@@ -92,6 +113,7 @@ export default {
     onFileChange (event) {
       this.file = event.target.files ? event.target.files[0] : null
       if (this.file) {
+        this.fileTitle = this.file.name
         this.get_text(this.file)
           .then(text => this.analysis(text))
       }
@@ -118,35 +140,70 @@ export default {
     // 文章をsplitIntoSentenceで分解して，perseSentenceで解析したものをテーブルに収める
     analysis (text) {
       console.log('analysis text')
-      this.textArray = []
       this.sentences = []
       this.splitIntoSentence(text)
-        .then(textArray => this.perseSentence(textArray))
+        .then(text => this.perseSentence(text))
     },
     // 文章を文末区切りで一文ごとに分解する．それを配列に格納する
     splitIntoSentence (text) {
       return new Promise((resolve) => {
         console.log('splitIntoSentence')
         text = text.replace(/[．。]/g, function (match) {
-          if (match.length === 1) { return '.' }
+          if (match.length === 1) { return '*' }
           return match
         })
         text = text.replace(/\r?\n/g, '')
         this.text = text
-        const textArray = text.split('.')
-        this.textArray = textArray
-        resolve(textArray)
+        resolve(text)
       })
     },
-    perseSentence (textArray) {
+    async perseSentence (text) {
       console.log('perseSentence')
-      for (let i = 0; i < textArray.length; i++) {
-        const data = {}
-        data.id = i
-        data.sentence = textArray[i]
-        this.sentences.push(data)
-        this.perseByKuromoji(textArray[i])
+      // 形態素解析を行った文章を*区切りで分割しておく
+      const tokens = await this.perseByKuromoji(text)
+      let data = {}
+      let id = 0
+      let sentence = ''
+      let syugo = []
+      let word = ''
+      let sf = ''
+      for (let i = 0; i < tokens.length; i++) {
+        sf = tokens[i].surface_form
+        sentence += sf
+        word += sf
+        if (sf === ('が')) {
+          syugo.push(word)
+          word = ''
+        } else if (sf === ('は')) {
+          syugo.push(word)
+          word = ''
+        } else if (func.isZyoshi(sf)) {
+          word = ''
+        }
+        if (tokens[i].surface_form.match(/\*/)) {
+          console.log(sf)
+          data.id = id
+          data.sentence = sentence.slice(0, sentence.length - 1)
+          data.syugo = syugo
+          this.sentences.push(data)
+          data = {}
+          id += 1
+          sentence = ''
+          syugo = []
+          word = ''
+        }
       }
+      const now = new Date()
+      const nowTime = now.getMonth() + '/' + now.getDate() + ' ' + now.getHours() + ' : ' + now.getMinutes()
+      this.$store.commit('addSaveData', {
+        text: this.sentences,
+        title: this.fileTitle !== '' ? this.fileTitle : 'ノーマルテキストより',
+        time: nowTime
+      })
+      this.$store.commit('addNowData', {
+        nowData: this.sentences
+      })
+      this.fileTitle = ''
     },
     perseByKuromoji (text) {
       return new Promise((resolve) => {
@@ -156,9 +213,8 @@ export default {
             if (err) {
               console.log(err)
             } else {
-              console.log(text)
               const tokens = tokenizer.tokenize(text)
-              console.log(tokens)
+              resolve(tokens)
             }
           }), 3000)
       })
