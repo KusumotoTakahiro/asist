@@ -1,7 +1,7 @@
 function getDefaultState () {
   return {
     saveList: [],
-    nowData: null,
+    nowData: [],
     isLogin: false
   }
 }

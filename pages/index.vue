@@ -71,14 +71,14 @@
             >
               <td>{{ item.id }}</td>
               <td>{{ item.sentence }}</td>
-              <td>
+              <td :width="syugoWidth">
                 <template v-for="syugo in item.syugo">
-                  <div :key="syugo">{{ syugo }},</div>
+                  <div :key="syugo">【{{ syugo }}】</div>
                 </template>
               </td>
               <td>
                 <template v-for="zyutugo in item.zyutugo">
-                  <div :key="zyutugo">{{ zyutugo }},</div>
+                  <div :key="zyutugo">【{{ zyutugo }}】</div>
                 </template>
               </td>
             </tr>
@@ -103,7 +103,8 @@ export default {
       encoding: '',
       text: '',
       sentences: [],
-      textDialog: false
+      textDialog: false,
+      max_word: 10 // 最大文字数をカウントし，表の幅に使う．
     }
   },
   mounted () {
@@ -117,6 +118,9 @@ export default {
   computed: {
     Dheight () {
       return this.$vuetify.breakpoint.height / 3 * 2
+    },
+    syugoWidth () {
+      return (this.max_word + 2) * 15
     }
   },
   methods: {
@@ -180,25 +184,30 @@ export default {
       let word2 = '' // 述語
       let sf = ''
       let pos = ''
+      // let bf = ''
       let verb = false // 直前が動詞か否かのフラグ
       for (let i = 0; i < tokens.length; i++) {
         console.log(tokens[i])
         sf = tokens[i].surface_form
         pos = tokens[i].pos
+        // bf = tokens[i].basic_form
         sentence += sf
-        word += sf
         /* 主語を判定しつつ抽出する処理
           (は，が以外の助詞) + (は，が以外の文字) + (は，が)
           を述語判定の形として，（は，が以外の助詞）を無視して
           （は，が）が来たタイミングで主語として抽出していく
         */
-        if (sf === ('が')) {
-          syugo.push(word)
-          word = ''
-        } else if (sf === ('は')) {
-          syugo.push(word)
+        if ((sf === ('が')) || (sf === ('は'))) {
+          if (word.length !== 0) {
+            word += sf
+            syugo.push(word)
+          }
           word = ''
         } else if (func.isZyoshi(sf)) {
+          word = ''
+        } else if (pos === '名詞') {
+          word += sf
+        } else {
           word = ''
         }
         /* 述語を判定しつつ抽出する処理
@@ -207,20 +216,34 @@ export default {
           述語として抽出していく
         */
         if (pos === '動詞') {
+          // if (bf === 'する') {
+          //   word2 += sf
+          // } else {
+          //   word2 += sf
+          // }
           word2 += sf
           verb = true
         } else if (verb && (pos !== '動詞')) {
-          zyutugo.push(word2)
+          if (pos === '助詞') { // 「～している」のパターン
+            word2 += sf
+            verb = true
+          } else { // 動詞の間に助動詞を含まないパターン
+            zyutugo.push(word2)
+            word2 = ''
+            verb = false
+          }
+        } else if ((sf === ('が')) || (sf === ('は'))) {
           word2 = ''
           verb = false
-        } else if (sf === ('が')) {
+        } else if ((sf === ',') || (sf === '，')) {
           word2 = ''
           verb = false
-        } else if (sf === ('は')) {
+        } else if (func.isZyoshi(sf)) {
           word2 = ''
           verb = false
         } else {
           word2 += sf
+          verb = false
         }
         if (tokens[i].surface_form.match(/\*/)) {
           console.log(sf)

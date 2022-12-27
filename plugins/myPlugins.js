@@ -6,7 +6,10 @@ const zyoshi = [
   'の',
   'には',
   'によると',
-  'するが'
+  'するが',
+  'で',
+  'を',
+  'も'
 ]
 
 export const isZyoshi = (word) => {
