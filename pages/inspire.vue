@@ -24,7 +24,7 @@
             <tr
               v-for="item in saveList"
               :key="item.time"
-              @click="goToHome(item.text.text)"
+              @click="goToHome(item.text.text, item.id)"
             >
               <td class="text-left">{{ item.text.title }}</td>
               <td class="text-left">{{ item.text.time }}</td>
@@ -51,13 +51,14 @@ export default {
   },
   mounted () {
     this.saveList = this.$store.state.saveList
-    console.log(this.saveList)
   },
   methods: {
-    async goToHome (text) {
+    async goToHome (text, id) {
       await this.$store.commit('addNowData', {
         nowData: text
       })
+      await this.$store.commit('addNowID', id)
+      console.log(id)
       this.$router.push('/')
     }
   }

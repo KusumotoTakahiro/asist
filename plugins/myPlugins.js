@@ -20,3 +20,19 @@ export const isZyoshi = (word) => {
   }
   return false
 }
+
+export const checkLine = (syugo, zyutugo) => {
+  let flag = true
+  if ((syugo.length === 0) || (zyutugo.length === 0)) {
+    flag = false
+  }
+  // ここはもう少し改良した方がよい.
+  if (syugo.length !== zyutugo.length) {
+    flag = false
+  }
+  return flag
+}
+
+export const test = () => {
+  return true
+}
