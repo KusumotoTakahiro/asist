@@ -318,9 +318,10 @@ export default {
       }
       const now = new Date()
       const nowDate = String(now.getMonth() + 1) + '/' + now.getDate()
-      const nowMin = (now.getMinutes().length === 1) ? '0' + now.getMinutes() : now.getMinutes()
-      const HM = now.getHours() + ' : ' + nowMin
-      const nowTime = nowDate + ' ' + HM
+      const nowHour = (now.getHours().toString().length === 1) ? '0' + now.getHours() : now.getHours()
+      const nowMin = (now.getMinutes().toString().length === 1) ? '0' + now.getMinutes() : now.getMinutes()
+      const HM = nowHour + ' : ' + nowMin
+      const nowTime = nowDate + '  ' + HM
       this.$store.commit('addSaveData', {
         text: this.sentences,
         title: this.fileTitle !== '' ? this.fileTitle : 'ノーマルテキストより',
