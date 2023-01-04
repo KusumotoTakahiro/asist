@@ -82,12 +82,16 @@
               <td>{{ item.sentence }}</td>
               <td :width="syugoWidth">
                 <template v-for="syugo in item.syugo">
-                  <div :key="syugo.id">【{{ syugo.word }}】</div>
+                  <div :key="syugo.id" :style="syugo.word === 'nothing' ? nothingData : existData">
+                    【{{ syugo.word }}】
+                  </div>
                 </template>
               </td>
-              <td>
+              <td :width="syugoWidth">
                 <template v-for="zyutugo in item.zyutugo">
-                  <div :key="zyutugo.id">【{{ zyutugo.word }}】</div>
+                  <div :key="zyutugo.id" :style="zyutugo.word === 'nothing' ? nothingData : existData">
+                    【{{ zyutugo.word }}】
+                  </div>
                 </template>
               </td>
             </tr>
@@ -116,6 +120,8 @@ export default {
       selectedDatas: [],
       selectedRow: { 'background-color': '' },
       notSelectedRow: { 'background-color': 'rgba(230,129,129,0.2)' },
+      nothingData: { color: 'rgba(0,0,0,0)' },
+      existData: { 'background-color': '' },
       max_word: 10 // 最大文字数をカウントし，表の幅に使う．
     }
   },
@@ -206,6 +212,7 @@ export default {
       let sentence = ''
       let syugo = [] // 主語の集合
       let zyutugo = [] // 述語の集合
+      let syugoTemp = [] // 主語を一時的に収納しておくスタック
       let word = '' // 主語
       let word2 = '' // 述語1
       let word3 = '' // 述語2
@@ -228,7 +235,7 @@ export default {
         if ((sf === ('が')) || (sf === ('は'))) {
           if (word.length !== 0) {
             word += sf
-            syugo.push({ word, id: syugo.length })
+            syugoTemp.push({ word, id: syugo.length })
           }
           word = ''
         } else if (func.isZyoshi(sf)) {
@@ -258,8 +265,18 @@ export default {
           } else { // 動詞の間に助動詞を含まないパターン.
             // 名詞の場合は「～する名詞」のように名詞の就職後の可能性が高いため．
             if ((pos !== '名詞') && (pos !== '記号')) {
+              if (syugoTemp.length === 0) {
+                syugo.push({ word: 'nothing', id: syugo.length })
+              } else {
+                syugo.push(syugoTemp.pop())
+              }
               zyutugo.push({ word: word2, id: zyutugo.length })
             } else if (sf === '*') {
+              if (syugoTemp.length === 0) {
+                syugo.push({ word: 'nothing', id: syugo.length })
+              } else {
+                syugo.push(syugoTemp.pop())
+              }
               zyutugo.push({ word: word2, id: zyutugo.length })
             }
             word2 = ''
@@ -286,6 +303,11 @@ export default {
           if ((pos === '助詞') || (pos === '助動詞')) {
             word3 += sf
           } else {
+            if (syugoTemp.length === 0) {
+              syugo.push({ word: 'nothing', id: syugo.length })
+            } else {
+              syugo.push(syugoTemp.pop())
+            }
             zyutugo.push({ word: word3, id: zyutugo.length })
             word3 = ''
           }
@@ -293,10 +315,16 @@ export default {
         }
         if (tokens[i].surface_form.match(/\*/)) {
           console.log(sf)
+          if (syugoTemp.length > 0) {
+            for (let i = 0; i < syugoTemp.length; i++) {
+              syugo.push(syugoTemp.pop())
+              zyutugo.push({ word: 'nothing', id: zyutugo.length })
+            }
+          }
           data.id = id
           data.sentence = sentence.slice(0, sentence.length - 1)
-          data.syugo = syugo
-          data.zyutugo = zyutugo
+          data.syugo = syugo.reverse()
+          data.zyutugo = zyutugo.reverse()
           // 主語，述語等で適切な文章構成になっているかを判定.
           if (func.checkLine(syugo, zyutugo)) {
             data.checkLine = true
@@ -310,6 +338,7 @@ export default {
           sentence = ''
           syugo = []
           zyutugo = []
+          syugoTemp = []
           word = ''
           word2 = ''
           verb = false

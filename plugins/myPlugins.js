@@ -27,8 +27,16 @@ export const checkLine = (syugo, zyutugo) => {
     flag = false
   }
   // ここはもう少し改良した方がよい.
-  if (syugo.length !== zyutugo.length) {
-    flag = false
+  console.log(syugo)
+  for (let i = 0; i < syugo.length; i++) {
+    if (syugo[i].word === 'nothing') {
+      flag = false
+    }
+  }
+  for (let i = 0; i < zyutugo.length; i++) {
+    if (zyutugo[i].word === 'nothing') {
+      flag = false
+    }
   }
   return flag
 }
