@@ -82,14 +82,14 @@
               <td>{{ item.sentence }}</td>
               <td :width="syugoWidth">
                 <template v-for="syugo in item.syugo">
-                  <div :key="syugo.id" :style="syugo.word === 'nothing' ? nothingData : existData">
+                  <div :key="syugo.wordID" :style="syugo.word === 'nothing' ? nothingData : existData">
                     【{{ syugo.word }}】
                   </div>
                 </template>
               </td>
               <td :width="syugoWidth">
                 <template v-for="zyutugo in item.zyutugo">
-                  <div :key="zyutugo.id" :style="zyutugo.word === 'nothing' ? nothingData : existData">
+                  <div :key="zyutugo.wordID" :style="zyutugo.word === 'nothing' ? nothingData : existData">
                     【{{ zyutugo.word }}】
                   </div>
                 </template>
@@ -208,7 +208,8 @@ export default {
       // 形態素解析を行った文章を*区切りで分割しておく
       const tokens = await this.perseByKuromoji(text)
       let data = {}
-      let id = 0
+      let id = 0 // 文章のIDであり，選択された文章を識別するID
+      let wordID = 0 // 主語の出現順序を管理するID
       let sentence = ''
       let syugo = [] // 主語の集合
       let zyutugo = [] // 述語の集合
@@ -235,7 +236,8 @@ export default {
         if ((sf === ('が')) || (sf === ('は'))) {
           if (word.length !== 0) {
             word += sf
-            syugoTemp.push({ word, id: syugo.length })
+            syugoTemp.push({ word, wordID })
+            wordID++
           }
           word = ''
         } else if (func.isZyoshi(sf)) {
@@ -263,21 +265,28 @@ export default {
             word2 += sf
             verb = true
           } else { // 動詞の間に助動詞を含まないパターン.
-            // 名詞の場合は「～する名詞」のように名詞の就職後の可能性が高いため．
+            // 名詞の場合は「～する名詞」のように名詞の修飾語の可能性が高いため．
+            // 基本はsyugoTempを経由するが，今回はsyugoTempは経由せずにsyugoを更新する.
+            // そのため，wordIDはここでは更新する．elseでは，syugoTempをもともと経由し終わっているため，
+            // wordIDは更新しなくていい.
             if ((pos !== '名詞') && (pos !== '記号')) {
               if (syugoTemp.length === 0) {
-                syugo.push({ word: 'nothing', id: syugo.length })
+                syugo.push({ word: 'nothing', wordID })
+                zyutugo.push({ word: word2, wordID })
+                wordID++
               } else {
                 syugo.push(syugoTemp.pop())
+                zyutugo.push({ word: word2, wordID: wordID - 1 })
               }
-              zyutugo.push({ word: word2, id: zyutugo.length })
             } else if (sf === '*') {
               if (syugoTemp.length === 0) {
-                syugo.push({ word: 'nothing', id: syugo.length })
+                syugo.push({ word: 'nothing', wordID })
+                zyutugo.push({ word: word2, wordID })
+                wordID++
               } else {
                 syugo.push(syugoTemp.pop())
+                zyutugo.push({ word: word2, wordID: wordID - 1 })
               }
-              zyutugo.push({ word: word2, id: zyutugo.length })
             }
             word2 = ''
             verb = false
@@ -304,11 +313,13 @@ export default {
             word3 += sf
           } else {
             if (syugoTemp.length === 0) {
-              syugo.push({ word: 'nothing', id: syugo.length })
+              syugo.push({ word: 'nothing', wordID })
+              zyutugo.push({ word: word3, wordID })
+              wordID++
             } else {
               syugo.push(syugoTemp.pop())
+              zyutugo.push({ word: word3, wordID: wordID - 1 })
             }
-            zyutugo.push({ word: word3, id: zyutugo.length })
             word3 = ''
           }
           adjective = false
@@ -316,15 +327,21 @@ export default {
         if (tokens[i].surface_form.match(/\*/)) {
           console.log(sf)
           if (syugoTemp.length > 0) {
+            let now
             for (let i = 0; i < syugoTemp.length; i++) {
-              syugo.push(syugoTemp.pop())
-              zyutugo.push({ word: 'nothing', id: zyutugo.length })
+              now = syugoTemp.pop()
+              syugo.push(now)
+              zyutugo.push({ word: 'nothing', wordID: now.wordID })
             }
           }
+          syugo.sort((a, b) => a.wordID - b.wordID)
+          zyutugo.sort((a, b) => a.wordID - b.wordID)
+          console.log(syugo)
+          console.log(zyutugo)
           data.id = id
           data.sentence = sentence.slice(0, sentence.length - 1)
-          data.syugo = syugo.reverse()
-          data.zyutugo = zyutugo.reverse()
+          data.syugo = syugo
+          data.zyutugo = zyutugo
           // 主語，述語等で適切な文章構成になっているかを判定.
           if (func.checkLine(syugo, zyutugo)) {
             data.checkLine = true

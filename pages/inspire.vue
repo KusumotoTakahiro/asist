@@ -3,7 +3,7 @@
     <v-col class="text-center">
       <v-alert border="left" colored-border color="blue lighten-1" elevation="2">
         <div class="text-h5">一時保存されているデータ一覧</div>
-        <div class="text-caption">※リロード，ブラウザごと消す等の処理で一時データはなくなります</div>
+        <div class="text-caption">※リロード，タブを閉じる等の処理で一時データはなくなります</div>
       </v-alert>
       <v-simple-table>
         <template v-slot:default>
